@@ -20,9 +20,10 @@ int main (int argc, char *argv[])
 {
   FILE *in, *out;
   char buf[size];
-  char outname[size] = "out_";
+  char outname[size];
   int read_size;
   int num_space = 0;
+  int pathsplit = 0;
   bool lf    = false; // '<'
   bool div   = false; // '/'
   bool rf    = false; // '>'
@@ -36,14 +37,25 @@ int main (int argc, char *argv[])
     printf("Can't open in %s", argv[1]);
     return 2;
   }
-  for(int t=0; t<size-4; t++) {
-    if(argv[1][t]) outname[t+4] = argv[1][t];
+  //
+  for(int t=0; argv[1][t];t++) {
+    if(argv[1][t]=='\\' | argv[1][t] =='/')
+      pathsplit = t+1;
+  }
+  for(int t=0; t<pathsplit; t++)
+    outname[t]=argv[1][t];
+  outname [pathsplit   ] = 'o';
+  outname [pathsplit +1] = 'u';
+  outname [pathsplit +2] = 't';
+  outname [pathsplit +3] = '_';
+  for(int t=0; t<size-pathsplit-4; t++)
+    if(argv[1][pathsplit+t])
+      outname[pathsplit+4+t] = argv[1][pathsplit+t];
     else {
-      outname[t+4] = '\0';
+      outname[pathsplit+4+t] = '\0';
       break;
     }
-  }
-
+  printf("%s\n", outname);
   if(!(out = fopen(outname, "w+"))) {
     printf("Can't create output file");
     return 3;
@@ -70,7 +82,12 @@ int main (int argc, char *argv[])
         if(div) num_space --;
         div = false;
         rf = true;
-      } else if(buf[t] == '\n') continue ;
+      }
+      else if(buf[t] == '\n' || buf[t] == '\r') {
+        rf = true;
+        continue;
+      }
+      else if(buf[t] == ' ' && rf) continue;
       else {
         if(lf) {
           if(buf[t] == '?') {addSpace(num_space, out); fputc('<',out); lf = false; }
